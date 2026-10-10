@@ -4,6 +4,9 @@
 cmake_minimum_required(VERSION 3.8...3.31)
 project(lexy VERSION 2025.05.0 LANGUAGES CXX)
 
+# We don't use C++ modules, and some Clang toolchains don't provide the scanner.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 set(LEXY_USER_CONFIG_HEADER "" CACHE FILEPATH "The user config header for lexy.")
 option(LEXY_FORCE_CPP17     "Whether or not lexy should use C++17 even if compiler supports C++20." OFF)
 
