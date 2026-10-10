@@ -1,7 +1,7 @@
 # Copyright (C) 2020-2025 Jonathan Müller and lexy contributors
 # SPDX-License-Identifier: BSL-1.0
 
-cmake_minimum_required(VERSION 3.8...3.10)
+cmake_minimum_required(VERSION 3.8...3.31)
 project(lexy VERSION 2025.05.0 LANGUAGES CXX)
 
 set(LEXY_USER_CONFIG_HEADER "" CACHE FILEPATH "The user config header for lexy.")
@@ -46,7 +46,7 @@ if(LEXY_ENABLE_INSTALL)
 endif()
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    cmake_minimum_required(VERSION 3.18)
+    cmake_minimum_required(VERSION 3.18...3.31)
     option(LEXY_BUILD_BENCHMARKS "whether or not benchmarks should be built" OFF)
     option(LEXY_BUILD_EXAMPLES   "whether or not examples should be built" ON)
     option(LEXY_BUILD_TESTS      "whether or not tests should be built" ON)
