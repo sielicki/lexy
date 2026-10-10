@@ -33,7 +33,7 @@ jobs:
           - "clang:18"
         build_type: [Debug, Release]
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: ghcr.io/foonathan/${{matrix.image}}
 
@@ -51,6 +51,27 @@ jobs:
     - name: Test
       working-directory: build/
       run: ctest --output-on-failure
+
+  linux-current:
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx: [g++-15, clang++-22]
+        cpp17: [ON, OFF]
+        build_type: [Debug, Release]
+
+    runs-on: ubuntu-26.04
+    env:
+      CXX: ${{matrix.cxx}}
+
+    steps:
+    - uses: actions/checkout@v7
+    - name: Configure
+      run: cmake -S . -B build -GNinja -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DLEXY_FORCE_CPP17=${{matrix.cpp17}}
+    - name: Build
+      run: cmake --build build --parallel 2
+    - name: Test
+      run: ctest --test-dir build --output-on-failure
 
   macos:
     strategy:
