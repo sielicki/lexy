@@ -9,16 +9,17 @@ on:
 
 jobs:
   website:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
     - uses: actions/checkout@v7
     - name: Install asciidoctor
-      run: sudo gem install asciidoctor pygments.rb
+      run: sudo gem install --no-document asciidoctor rouge
     - name: Install hugo
       uses: peaceiris/actions-hugo@v3
       with:
-        hugo-version: 'latest'
+        # renovate: datasource=github-tags depName=gohugoio/hugo
+        hugo-version: '0.167.0'
         extended: true
 
     - name: Create Build Environment
