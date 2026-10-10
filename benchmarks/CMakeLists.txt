@@ -4,7 +4,7 @@
 # Fetch nanobench.
 message(STATUS "Fetching nanobench")
 include(FetchContent)
-FetchContent_Declare(nanobench URL https://github.com/martinus/nanobench/archive/v4.3.0.zip)
+FetchContent_Declare(nanobench URL https://github.com/martinus/nanobench/archive/refs/tags/v4.6.0.zip)
 FetchContent_MakeAvailable(nanobench)
 
 add_subdirectory(json)
