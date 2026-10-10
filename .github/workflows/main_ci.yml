@@ -77,20 +77,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xcode: ['15', '16']
+        runner:
+          - {os: macos-15, xcode: '16.4'}
+          - {os: macos-26, xcode: '26.6'}
         build_type: [Debug, Release]
 
-    runs-on: macos-14
+    runs-on: ${{matrix.runner.os}}
 
     steps:
     - uses: actions/checkout@v7
     - uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: ${{matrix.xcode}}
+        xcode-version: ${{matrix.runner.xcode}}
     - name: Create Build Environment
       run: cmake -E make_directory build
-    - name: Install ninja
-      run: brew install ninja
 
     - name: Configure
       working-directory: build/
