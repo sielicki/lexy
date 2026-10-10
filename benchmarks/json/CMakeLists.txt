@@ -5,9 +5,12 @@ include(FetchContent)
 
 # Fetch benchmark data.
 message(STATUS "Fetching json benchmark data")
+# renovate: datasource=git-refs depName=https://github.com/miloyip/nativejson-benchmark version=master
+set(json_data_revision 478d5727c2a4048e835a29c65adecc7d795360d5)
+set(json_data_dir "${CMAKE_CURRENT_BINARY_DIR}/data/${json_data_revision}")
 function(fetch_data file url)
-    if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/data/${file})
-        file(DOWNLOAD "${url}" "${CMAKE_CURRENT_BINARY_DIR}/data/${file}" STATUS status)
+    if (NOT EXISTS "${json_data_dir}/${file}")
+        file(DOWNLOAD "${url}" "${json_data_dir}/${file}" STATUS status)
         list(GET status 0 status_code)
         list(GET status 1 status_string)
 
@@ -17,15 +20,16 @@ function(fetch_data file url)
     endif()
 endfunction()
 
-fetch_data(canada.json https://github.com/miloyip/nativejson-benchmark/raw/master/data/canada.json)
-fetch_data(citm_catalog.json https://github.com/miloyip/nativejson-benchmark/raw/master/data/citm_catalog.json)
-fetch_data(twitter.json https://raw.githubusercontent.com/miloyip/nativejson-benchmark/master/data/twitter.json)
+set(json_data_url "https://raw.githubusercontent.com/miloyip/nativejson-benchmark/${json_data_revision}/data")
+fetch_data(canada.json "${json_data_url}/canada.json")
+fetch_data(citm_catalog.json "${json_data_url}/citm_catalog.json")
+fetch_data(twitter.json "${json_data_url}/twitter.json")
 
 # Benchmarking executable.
 add_executable(lexy_benchmark_json)
 target_sources(lexy_benchmark_json PRIVATE main.cpp baseline.cpp lexy.cpp)
 target_link_libraries(lexy_benchmark_json PRIVATE foonathan::lexy::dev foonathan::lexy::file foonathan::lexy::unicode nanobench)
-target_compile_definitions(lexy_benchmark_json PRIVATE LEXY_BENCHMARK_DATA="${CMAKE_CURRENT_BINARY_DIR}/data/")
+target_compile_definitions(lexy_benchmark_json PRIVATE LEXY_BENCHMARK_DATA="${json_data_dir}/")
 set_target_properties(lexy_benchmark_json PROPERTIES OUTPUT_NAME "json")
 
 # Compare with PEGTL's json parser.
@@ -41,7 +45,7 @@ target_link_libraries(lexy_benchmark_json PRIVATE taocpp::pegtl)
 # Compare with nlohmann/json.
 message(STATUS "Fetching nlohmann/json")
 # Only the headers are needed; do not configure the dependency's own build.
-FetchContent_Declare(nlohmann_json URL https://github.com/nlohmann/json/archive/develop.zip
+FetchContent_Declare(nlohmann_json URL https://github.com/nlohmann/json/archive/refs/tags/v3.12.0.zip
     SOURCE_SUBDIR include)
 FetchContent_MakeAvailable(nlohmann_json)
 
@@ -50,7 +54,8 @@ target_include_directories(lexy_benchmark_json SYSTEM PRIVATE ${nlohmann_json_SO
 
 # Compare with rapidjson.
 message(STATUS "Fetching rapidjson")
-FetchContent_Declare(rapidjson URL https://github.com/Tencent/rapidjson/archive/master.zip
+# renovate: datasource=git-refs depName=https://github.com/Tencent/rapidjson version=master
+FetchContent_Declare(rapidjson URL https://github.com/Tencent/rapidjson/archive/24b5e7a8b27f42fa16b96fc70aade9106cf7102f.zip
     SOURCE_SUBDIR include)
 FetchContent_MakeAvailable(rapidjson)
 
@@ -66,7 +71,7 @@ if (Boost_FOUND)
 endif()
 
 # compare glaze
-FetchContent_Declare(glaze URL https://github.com/stephenberry/glaze/archive/main.zip)
+FetchContent_Declare(glaze URL https://github.com/stephenberry/glaze/archive/refs/tags/v9.0.0.zip)
 FetchContent_MakeAvailable(glaze)
 target_sources(lexy_benchmark_json PRIVATE glaze.cpp)
 target_link_libraries(lexy_benchmark_json PRIVATE glaze::glaze)

@@ -132,6 +132,7 @@ ctest
 === Benchmarks
 
 Benchmarks are only available if `LEXY_BUILD_BENCHMARKS` is `ON` (not the default).
+The JSON comparison requires CMake 3.31 and a compiler with C++23 support for Glaze.
 It will automatically fetch nanobench and necessary data files.
 Refer to the `benchmarks/` folder for details.
 

@@ -1,6 +1,8 @@
 # Copyright (C) 2020-2025 Jonathan Müller and lexy contributors
 # SPDX-License-Identifier: BSL-1.0
 
+cmake_minimum_required(VERSION 3.31)
+
 # Fetch nanobench.
 message(STATUS "Fetching nanobench")
 include(FetchContent)
