@@ -18,7 +18,6 @@ jobs:
     - name: Install hugo
       uses: peaceiris/actions-hugo@v3
       with:
-        # renovate: datasource=github-tags depName=gohugoio/hugo
         hugo-version: '0.167.0'
         extended: true
 
