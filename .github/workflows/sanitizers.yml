@@ -29,18 +29,15 @@ jobs:
         ASAN_OPTIONS: detect_stack_use_after_return=1
 
   clang-tidy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
     - uses: actions/checkout@v7
     - name: Create Build Environment
       run: cmake -E make_directory build
-    - name: Install ninja and clang-tidy
-      run: sudo apt-get -qq update && sudo apt-get install -y ninja-build clang-tidy-18
-
     - name: Configure
       working-directory: build/
-      run: cmake -GNinja $GITHUB_WORKSPACE -DCMAKE_CXX_CLANG_TIDY="clang-tidy-18;-extra-arg=-Wno-unknown-warning-option"
+      run: cmake -GNinja "$GITHUB_WORKSPACE" -DCMAKE_CXX_COMPILER=clang++-22 -DCMAKE_CXX_CLANG_TIDY=clang-tidy-22
     - name: Build
       working-directory: build/
       run: cmake --build . --target lexy_test lexy_ext_test
