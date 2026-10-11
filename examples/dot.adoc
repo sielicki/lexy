@@ -1,0 +1,65 @@
+= DOT example
+
+`dot.cpp` parses Graphviz DOT files and prints a lossless lexy parse tree.
+It demonstrates Unicode identifiers, case-insensitive reserved keywords, token productions,
+recursive subgraphs and HTML-like strings, and a context flag for graph direction.
+Assignments, node declarations, and edges share an identifier prefix; the parser consumes
+that prefix once and selects the rest of the statement without backtracking.
+
+== Build and run
+
+[source,sh]
+----
+cmake -S . -B build -DLEXY_BUILD_EXAMPLES=ON -DLEXY_BUILD_TESTS=ON
+cmake --build build --target lexy_example_dot lexy_test_dot
+./build/examples/dot examples/dot/pipeline.dot
+ctest --test-dir build -R '^dot$' --output-on-failure
+----
+
+The program returns 0 for valid input, 1 for usage or file-read errors, and 2 for parse errors.
+The executable is named `dot`, so use its path to distinguish it from Graphviz's renderer.
+No Tree-sitter or Nix dependency is needed to build or run the example.
+
+== Grammar source and scope
+
+The starting point is https://github.com/rydesun/tree-sitter-dot/tree/80327abbba6f47530edeb0df9f11bd5d5c93c14d[tree-sitter-dot at revision `80327abbba6f47530edeb0df9f11bd5d5c93c14d`],
+found through `tree-sitter-grammars.tree-sitter-dot` in nixpkgs
+`8edc0c72e3a38faf5434e40d1f19431125fe4b30` (package version `0-unstable-2025-10-21`).
+The upstream MIT notice is preserved in `dot.LICENSE`.
+The https://graphviz.org/doc/info/lang.html[Graphviz DOT language reference] provides the language context.
+
+The example accepts directed and undirected graphs, optional `strict`, named and anonymous
+subgraphs, chained edges with node or subgraph endpoints, ports, default attributes,
+assignments, repeated attribute lists, numeric and Unicode IDs, concatenated quoted strings,
+balanced HTML-like IDs, and all three comment forms (`//`, `/* ... */`, and `#`).
+
+The following boundaries are intentional:
+
+* Unlike the upstream syntax grammar, the example rejects `->` in `graph` and `--` in `digraph`,
+  including inside nested subgraphs.
+* It follows the upstream Unicode XID identifier rules and balanced-angle-bracket HTML syntax.
+  It does not validate XML, HTML label tags, attribute meanings, or compass-point names.
+* It parses syntax only: it does not expand subgraph edges, apply defaults, merge repeated
+  nodes/edges in `strict` graphs, interpret string escapes, or render layouts.
+* It follows the upstream single-node endpoint grammar, without the comma-separated node lists
+  supported by newer Graphviz syntax. Whitespace outside strings is ASCII whitespace.
+* Both subgraphs and HTML-like IDs are subject to lexy's recursion limit.
+
+Tree-sitter's generated parse-tree shape is not reproduced: lexy productions reflect the
+factored grammar. The resulting tree retains comments, whitespace, and the spelling of IDs.
+
+== Finding and fetching the reference with Nix
+
+[source,sh]
+----
+nix --extra-experimental-features 'nix-command flakes' eval \
+  --json nixpkgs#tree-sitter-grammars --apply builtins.attrNames
+
+nix --extra-experimental-features 'nix-command flakes' build \
+  --no-link --print-out-paths \
+  github:NixOS/nixpkgs/8edc0c72e3a38faf5434e40d1f19431125fe4b30#tree-sitter-grammars.tree-sitter-dot.src
+----
+
+The returned source directory contains `grammar.js` and `test/corpus/`.
+The local tests cover valid and invalid syntax, direction checks, lossless tree construction,
+and recursion limits.

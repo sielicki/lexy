@@ -1,0 +1,17 @@
+// A build pipeline with a cluster, ports, and subgraph edge endpoints.
+strict digraph pipeline {
+    rankdir = LR;
+    node [shape=box, style=rounded];
+    edge [color=steelblue];
+
+    subgraph cluster_frontend {
+        label = "Front" + " end";
+        source [label="Source files"];
+        parser [label=<<B>lexy</B><BR/>parser>];
+        source:e -> parser:w;
+    }
+
+    parser -> { ast diagnostics } [label="parse"];
+    ast -> optimizer -> binary;
+    diagnostics [label="Diagnostics\nwith source locations"];
+}

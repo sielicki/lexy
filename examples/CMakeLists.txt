@@ -16,6 +16,11 @@ set_target_properties(lexy_example_email PROPERTIES OUTPUT_NAME "email")
 target_sources(lexy_example_email PRIVATE email.cpp)
 target_link_libraries(lexy_example_email PRIVATE foonathan::lexy::dev foonathan::lexy::file)
 
+add_executable(lexy_example_dot)
+set_target_properties(lexy_example_dot PROPERTIES OUTPUT_NAME "dot")
+target_sources(lexy_example_dot PRIVATE dot.cpp)
+target_link_libraries(lexy_example_dot PRIVATE foonathan::lexy::dev foonathan::lexy::file foonathan::lexy::unicode)
+
 add_executable(lexy_example_ip_address)
 set_target_properties(lexy_example_ip_address PROPERTIES OUTPUT_NAME "ip_address")
 target_sources(lexy_example_ip_address PRIVATE ip_address.cpp)
