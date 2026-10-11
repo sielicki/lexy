@@ -4,6 +4,9 @@
 add_executable(lexy_test_calculator calculator.cpp)
 target_link_libraries(lexy_test_calculator PRIVATE lexy_test_base)
 
+add_executable(lexy_test_diff diff.cpp)
+target_link_libraries(lexy_test_diff PRIVATE lexy_test_base)
+
 add_executable(lexy_test_email email.cpp)
 target_link_libraries(lexy_test_email PRIVATE lexy_test_base)
 
