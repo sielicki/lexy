@@ -25,3 +25,6 @@ target_link_libraries(lexy_test_xml PRIVATE lexy_test_base)
 add_executable(lexy_test_turing turing.cpp)
 target_link_libraries(lexy_test_turing PRIVATE lexy_test_base)
 
+add_executable(lexy_test_gitignore gitignore.cpp)
+target_link_libraries(lexy_test_gitignore PRIVATE lexy_test_base)
+
