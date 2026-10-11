@@ -44,3 +44,14 @@ foreach(file ${examples})
     target_sources(lexy_test_playground_examples PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${name})
 endforeach()
 
+# Compile the standalone example exactly as pasted into the playground.
+# Do not define LEXY_TEST: the playground macro must suppress the example's main.
+file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/hurl_playground.cpp" CONTENT
+"#include \"${doc_assets}/cpp/playground_headers.hpp\"
+#define LEXY_PLAYGROUND_PRODUCTION production
+#include \"${doc_assets}/cpp/playground_prefix.cpp\"
+#include \"${PROJECT_SOURCE_DIR}/examples/hurl.cpp\"
+#include \"${doc_assets}/cpp/playground_main.cpp\"
+")
+add_library(lexy_test_hurl_playground OBJECT ${CMAKE_CURRENT_BINARY_DIR}/hurl_playground.cpp)
+target_link_libraries(lexy_test_hurl_playground PRIVATE foonathan::lexy::dev foonathan::lexy::unicode)

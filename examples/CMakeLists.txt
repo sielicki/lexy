@@ -46,3 +46,7 @@ set_target_properties(lexy_example_turing PROPERTIES OUTPUT_NAME "turing")
 target_sources(lexy_example_turing PRIVATE turing.cpp)
 target_link_libraries(lexy_example_turing PRIVATE foonathan::lexy::dev foonathan::lexy::file)
 
+add_executable(lexy_example_hurl hurl.cpp)
+set_target_properties(lexy_example_hurl PROPERTIES OUTPUT_NAME "hurl")
+target_link_libraries(lexy_example_hurl PRIVATE foonathan::lexy::dev foonathan::lexy::file foonathan::lexy::unicode)
+

@@ -36,3 +36,5 @@ add_test(NAME shell COMMAND lexy_test_shell)
 add_test(NAME xml COMMAND lexy_test_xml)
 add_test(NAME turing COMMAND lexy_test_turing)
 
+add_test(NAME hurl COMMAND lexy_test_hurl)
+
