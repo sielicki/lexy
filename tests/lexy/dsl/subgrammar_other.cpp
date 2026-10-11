@@ -33,4 +33,6 @@ LEXY_INSTANTIATE_SUBGRAMMAR(
 LEXY_INSTANTIATE_SUBGRAMMAR(
     lexy_subgrammar_test::production,
     lexy::parse_action<void, lexy::string_input<>, LEXY_DECAY_DECLTYPE(lexy::noop)>)
-
+LEXY_INSTANTIATE_SUBGRAMMAR(
+    lexy_subgrammar_test::production,
+    lexy::validate_action<void, lexy::string_input<>, LEXY_DECAY_DECLTYPE(lexy::noop)>)

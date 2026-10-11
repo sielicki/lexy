@@ -6,9 +6,11 @@
 #include <doctest/doctest.h>
 #include <lexy/callback/adapter.hpp>
 #include <lexy/dsl/case_folding.hpp>
+#include <lexy/dsl/eof.hpp>
 #include <lexy/dsl/list.hpp>
 #include <lexy/dsl/literal.hpp>
 #include <lexy/dsl/production.hpp>
+#include <lexy/dsl/recover.hpp>
 #include <lexy/dsl/sequence.hpp>
 #include <lexy/input/string_input.hpp>
 #include <vector>
@@ -142,3 +144,37 @@ TEST_CASE("validate")
     }
 }
 
+namespace
+{
+struct recover_prod
+{
+    static constexpr auto rule = lexy::dsl::try_(LEXY_LIT("a")) + lexy::dsl::try_(LEXY_LIT("b"))
+                                 + LEXY_LIT("c") + lexy::dsl::eof;
+};
+} // namespace
+
+TEST_CASE("validate with noop")
+{
+    constexpr auto callback = lexy::callback([](auto, auto) {});
+
+    // Counting without diagnostics must preserve recovery status and every error.
+    for (auto str : {"abc", "ac", "bc", "c", "", "ab", "abcd"})
+    {
+        CAPTURE(str);
+        auto input    = lexy::zstring_input(str);
+        auto expected = lexy::validate<recover_prod>(input, callback);
+        auto result   = lexy::validate<recover_prod>(input, lexy::noop);
+        CHECK(result.is_success() == expected.is_success());
+        CHECK(result.is_recovered_error() == expected.is_recovered_error());
+        CHECK(result.is_fatal_error() == expected.is_fatal_error());
+        CHECK(result.error_count() == expected.error_count());
+        CHECK(result.errors() == expected.errors());
+    }
+
+    auto recovered = lexy::validate<recover_prod>(lexy::zstring_input("c"), lexy::noop);
+    CHECK(recovered.is_recovered_error());
+    CHECK(recovered.error_count() == 2);
+    auto fatal = lexy::validate<recover_prod>(lexy::zstring_input(""), lexy::noop);
+    CHECK(fatal.is_fatal_error());
+    CHECK(fatal.error_count() == 3);
+}

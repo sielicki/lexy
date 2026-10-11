@@ -114,6 +114,7 @@ private:
 
     template <typename Reader>
     friend class _vh;
+    friend class _vnh;
 };
 } // namespace lexy
 
@@ -265,13 +266,53 @@ private:
     event_handler*              _top = nullptr;
 };
 
+// Validation with noop still counts errors, but does not need their context.
+class _vnh
+{
+public:
+    template <typename Input, typename Sink>
+    constexpr explicit _vnh(const _detail::any_holder<const Input*>&, _detail::any_holder<Sink>&)
+    {}
+
+    class event_handler
+    {
+    public:
+        constexpr event_handler(production_info) {}
+
+        template <typename Error>
+        constexpr void on(_vnh& handler, parse_events::error, const Error&)
+        {
+            ++handler._error_count;
+        }
+
+        template <typename Event, typename... Args>
+        constexpr int on(_vnh&, Event, const Args&...)
+        {
+            return 0; // operation_chain_start must return something
+        }
+    };
+
+    template <typename Production, typename State>
+    using value_callback = _detail::void_value_callback;
+
+    template <typename Result>
+    constexpr auto get_result(bool rule_parse_result) &&
+    {
+        return Result(rule_parse_result, LEXY_MOV(_error_count));
+    }
+
+private:
+    std::size_t _error_count = 0;
+};
+
 template <typename State, typename Input, typename ErrorCallback>
 struct validate_action
 {
     const ErrorCallback* _callback;
     State*               _state = nullptr;
 
-    using handler = _vh<lexy::input_reader<Input>>;
+    using handler = std::conditional_t<std::is_same_v<ErrorCallback, _noop>, _vnh,
+                                       _vh<lexy::input_reader<Input>>>;
     using state   = State;
     using input   = Input;
 
@@ -317,4 +358,3 @@ constexpr auto validate(const Input& input, const State& state,
 } // namespace lexy
 
 #endif // LEXY_ACTION_VALIDATE_HPP_INCLUDED
-

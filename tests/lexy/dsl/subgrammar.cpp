@@ -59,5 +59,12 @@ TEST_CASE("dsl::subgrammar")
         auto empty = lexy::parse<production>(lexy::zstring_input(""), lexy::noop);
         CHECK(!empty);
     }
+    SUBCASE("validate with noop")
+    {
+        using production = test_production_for<decltype(rule)>;
+        auto empty = lexy::validate<production>(lexy::zstring_input(""), lexy::noop);
+        CHECK(empty.is_fatal_error());
+        CHECK(empty.error_count() == 1);
+        CHECK(lexy::validate<production>(lexy::zstring_input("abc"), lexy::noop));
+    }
 }
-
