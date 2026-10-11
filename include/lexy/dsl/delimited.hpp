@@ -49,7 +49,7 @@ struct _del_chars
         begin = recover_end;
     }
 
-    template <typename Close, typename... Escs>
+    template <typename Limit, typename Close, typename... Escs>
     constexpr void parse_swar(Reader& reader, Close, Escs...)
     {
         using encoding = typename Reader::encoding;
@@ -57,11 +57,60 @@ struct _del_chars
         // If we have a SWAR reader and the Close and Escape chars are literal rules,
         // we can munch as much content as possible in a fast loop.
         // We also need to efficiently check for the CharClass for it to make sense.
-        if constexpr (lexy::_detail::is_swar_reader<Reader> //
+        if constexpr (lexy::_detail::is_swar_reader<Reader>
+                      && sizeof(typename encoding::char_type) == 1 && CHAR_BIT == 8
                       && (lexy::is_literal_rule<Close> && ... && Escs::esc_is_literal)
-                      && !std::is_same_v<
-                          decltype(CharClass::template char_class_match_swar<encoding>({})),
-                          std::false_type>)
+                      && _cas<CharClass>.range_count() == 1 && _cas<CharClass>.single_count() == 0
+                      && Limit::template can_skip_ascii<CharClass>())
+        {
+            // Consume the valid prefix even when the chunk contains a delimiter.
+            // Validate non-ASCII content with the code point parser.
+            while (true)
+            {
+                auto cur = reader.peek_swar();
+                if ((cur & 0x80) != 0)
+                {
+                    if constexpr (lexy::is_unicode_encoding<encoding>
+                                  && !std::is_same_v<decltype(CharClass::char_class_match_cp(0)),
+                                                     std::false_type>
+                                  && static_cast<unsigned char>(
+                                         Close::template lit_first_char<encoding>())
+                                         < 0x80
+                                  && ((static_cast<unsigned char>(
+                                           Escs::template esc_first_char<encoding>())
+                                       < 0x80)
+                                      && ...)
+                                  && Limit::can_skip_unicode())
+                    {
+                        auto cp = lexy::_detail::parse_code_point(reader);
+                        if (cp.error == lexy::_detail::cp_error::success
+                            && CharClass::char_class_match_cp(cp.cp))
+                        {
+                            reader.reset(cp.end);
+                            continue;
+                        }
+                    }
+                    break;
+                }
+                auto mask = lexy::_detail::swar_prefix_mask<
+                    static_cast<unsigned char>(_cas<CharClass>.range_lower[0]),
+                    static_cast<unsigned char>(_cas<CharClass>.range_upper[0]),
+                    static_cast<unsigned char>(encoding::eof()),
+                    static_cast<unsigned char>(Close::template lit_first_char<encoding>()),
+                    static_cast<unsigned char>(Escs::template esc_first_char<encoding>())...>(cur);
+                if (mask != 0)
+                {
+                    reader.bump_swar(lexy::_detail::swar_find_difference<unsigned char>(mask, 0));
+                    break;
+                }
+                reader.bump_swar();
+            }
+        }
+        else if constexpr (lexy::_detail::is_swar_reader<Reader> //
+                           && (lexy::is_literal_rule<Close> && ... && Escs::esc_is_literal)
+                           && !std::is_same_v<
+                               decltype(CharClass::template char_class_match_swar<encoding>({})),
+                               std::false_type>)
         {
             using char_type = typename encoding::char_type;
             using lexy::_detail::swar_has_char;
@@ -182,6 +231,30 @@ struct _del_limit
 {
     using error = Error;
 
+    static constexpr bool can_skip_unicode()
+    {
+        if constexpr (lexy::is_char_class_rule<Token>)
+            return std::is_same_v<decltype(Token::char_class_match_cp(0)), std::false_type>;
+        else
+            return false;
+    }
+
+    template <typename CharClass>
+    static constexpr bool can_skip_ascii()
+    {
+        if constexpr (lexy::is_char_class_rule<Token>)
+        {
+            constexpr auto content = CharClass::char_class_ascii();
+            constexpr auto limit   = Token::char_class_ascii();
+            for (auto c = 0; c != 128; ++c)
+                if (content.contains[c] && limit.contains[c])
+                    return false;
+            return true;
+        }
+        else
+            return false;
+    }
+
     template <typename Reader>
     static constexpr bool peek(Reader reader)
     {
@@ -192,6 +265,17 @@ template <typename Error>
 struct _del_limit<void, Error>
 {
     using error = Error;
+
+    static constexpr bool can_skip_unicode()
+    {
+        return true;
+    }
+
+    template <typename CharClass>
+    static constexpr bool can_skip_ascii()
+    {
+        return true;
+    }
 
     template <typename Reader>
     static constexpr bool peek(Reader reader)
@@ -216,7 +300,7 @@ struct _del : rule_base
         {
             // Parse as many content chars as possible.
             // If it returns, we need to look closer at the next char.
-            cur_chars.parse_swar(reader, Close{}, Escapes{}...);
+            cur_chars.template parse_swar<_limit>(reader, Close{}, Escapes{}...);
 
             // Check for closing delimiter.
             if (close.try_parse(context.control_block, reader))

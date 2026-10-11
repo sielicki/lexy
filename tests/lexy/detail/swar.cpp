@@ -77,6 +77,48 @@ TEST_CASE("swar_find_difference")
     CHECK(swar_find_difference<char>(0x1'FFFF'FFFF, 0x2'FFFF'FFFF) == 4);
 }
 
+TEST_CASE("swar_find_prefix")
+{
+    constexpr auto find
+        = [](swar_int word) { return swar_find_prefix<0x20, 0x7E, '"', '\\', 0xFF>(word); };
+    static_assert(find(swar_fill('a')) == swar_length<char>);
+    CHECK(find(swar_pack('a', '"', '#', 'a', 'a', 'a', 'a', 'a').value) == 1);
+
+    // Check every byte value and position, including carry/borrow between lanes.
+    for (auto pos = 0u; pos != swar_length<char>; ++pos)
+        for (auto c = 0u; c != 256; ++c)
+        {
+            auto word = swar_fill('a');
+            word &= ~(swar_int(0xFF) << (pos * 8));
+            word |= swar_int(c) << (pos * 8);
+            auto valid = c >= 0x20 && c <= 0x7E && c != '"' && c != '\\';
+            CHECK(find(word) == (valid ? swar_length<char> : pos));
+        }
+
+    auto state = swar_int(0x123456789ABCDEF0);
+    for (auto i = 0; i != 10000; ++i)
+    {
+        state         = state * swar_int(6364136223846793005ULL) + 1;
+        auto expected = swar_length<char>;
+        for (auto pos = 0u; pos != swar_length<char>; ++pos)
+        {
+            auto c = (state >> (pos * 8)) & 0xFF;
+            if (c < 0x20 || c > 0x7E || c == '"' || c == '\\')
+            {
+                expected = pos;
+                break;
+            }
+        }
+        CHECK(find(state) == expected);
+    }
+
+    CHECK(swar_find_prefix<0, 127>(swar_fill(char(0))) == swar_length<char>);
+    CHECK(swar_find_prefix<0, 127>(swar_fill(char(127))) == swar_length<char>);
+    CHECK(swar_find_prefix<0, 127>(swar_fill(char(128))) == 0);
+    CHECK(swar_find_prefix<'a', 'a'>(swar_fill('a')) == swar_length<char>);
+    CHECK(swar_find_prefix<'a', 'a'>(swar_fill('b')) == 0);
+}
+
 TEST_CASE("swar_has_zero")
 {
     SUBCASE("char")

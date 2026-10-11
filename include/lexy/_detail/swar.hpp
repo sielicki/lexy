@@ -154,6 +154,41 @@ constexpr std::size_t swar_find_difference(swar_int lhs, swar_int rhs)
     return std::size_t(bit_idx) / char_bit_size<CharT>;
 }
 
+// Returns a mask whose first set bit identifies the first occurrence of C.
+// Subtraction can also set bits in subsequent characters, so only the first
+// matching character is reliable.
+template <typename CharT, CharT C>
+constexpr swar_int swar_char_mask(swar_int value)
+{
+    auto chars = value ^ swar_fill(C);
+    return (chars - swar_fill(CharT(1))) & ~chars
+           & swar_fill(CharT(1 << (char_bit_size<CharT> - 1)));
+}
+
+// Marks the first byte outside [Lower, Upper] or equal to one of Cs.
+// Later bits may also be set; only the first marked byte is reliable.
+// Every accepted byte is ASCII; non-ASCII bytes must be checked separately.
+template <unsigned Lower, unsigned Upper, unsigned char... Cs>
+constexpr swar_int swar_prefix_mask(swar_int value)
+{
+    static_assert(CHAR_BIT == 8 && Lower <= Upper && Upper <= 0x7F);
+    constexpr auto high_bit = swar_fill(static_cast<unsigned char>(0x80));
+
+    // Borrow/carry can affect later bytes, but never precede the first failure.
+    auto below = (value - swar_fill(static_cast<unsigned char>(Lower))) & ~value;
+    auto above = (value + swar_fill(static_cast<unsigned char>(0x7F - Upper))) | value;
+    return ((below | above) & high_bit)
+           | ((Cs >= Lower && Cs <= Upper ? swar_char_mask<unsigned char, Cs>(value) : 0) | ...
+              | swar_int(0));
+}
+
+// Returns the length of the initial sequence in [Lower, Upper], excluding Cs.
+template <unsigned Lower, unsigned Upper, unsigned char... Cs>
+constexpr std::size_t swar_find_prefix(swar_int value)
+{
+    return swar_find_difference<unsigned char>(swar_prefix_mask<Lower, Upper, Cs...>(value), 0);
+}
+
 // Returns true if v has a char less than N.
 template <typename CharT, CharT N>
 constexpr bool swar_has_char_less(swar_int v)

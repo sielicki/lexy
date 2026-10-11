@@ -7,6 +7,8 @@
 #include <lexy/dsl/ascii.hpp>
 #include <lexy/dsl/capture.hpp>
 #include <lexy/dsl/if.hpp>
+#include <lexy/dsl/unicode.hpp>
+#include <string>
 
 namespace
 {
@@ -635,6 +637,72 @@ TEST_CASE("dsl::delimited(open, close) - SWAR")
                  .literal(")")
                  .token("stuvwxyz")
                  .literal(")"));
+}
+
+TEST_CASE("dsl::delimited - partial SWAR chunks")
+{
+    constexpr auto rule = dsl::quoted.limit(
+        dsl::ascii::newline)(-dsl::unicode::control, dsl::backslash_escape.rule(LEXY_LIT("n")));
+    constexpr delim_callback callback
+        = lexy::callback<int>([](const char*, std::size_t count) { return int(count); });
+
+    // verify() compares the complete trace, status, and value with a scalar reader.
+    // Place every byte at every offset across two words, including embedded NUL,
+    // invalid UTF-8, delimiters, escapes, and the missing-delimiter limit.
+    for (auto length = 0u; length != 16; ++length)
+        for (auto byte = 0u; byte != 256; ++byte)
+        {
+            auto str   = std::string("\"") + std::string(length, 'a') + char(byte) + "abc\"";
+            auto input = lexy::string_input<lexy::utf8_char_encoding>(str.data(), str.size());
+            LEXY_VERIFY_RUNTIME(input);
+        }
+
+    for (auto length = 0u; length != 16; ++length)
+        for (auto tail : {"", "\"", "\\", "\\n\"", "\\x\"", "\n", "\xc3\xa9\"", "\xe6\x97\xa5\"",
+                          "\xf0\x9f\x98\x80\"", "\xc3", "\xe6\x97", "\xf0\x9f\x98",
+                          "\xed\xa0\x80\"", "\xf4\x90\x80\x80\""})
+        {
+            auto str   = std::string("\"") + std::string(length, 'a') + tail;
+            auto input = lexy::string_input<lexy::utf8_char_encoding>(str.data(), str.size());
+            LEXY_VERIFY_RUNTIME(input);
+        }
+}
+
+TEST_CASE("dsl::delimited - Unicode boundaries")
+{
+    constexpr delim_callback callback
+        = lexy::callback<int>([](const char*, std::size_t count) { return int(count); });
+
+    SUBCASE("Unicode limit")
+    {
+        constexpr auto rule = dsl::quoted.limit(dsl::unicode::newline)(-dsl::unicode::control);
+        auto result = LEXY_VERIFY_RUNTIME(lexy::utf8_char_encoding{}, "\"a\xc3\xa9\xe2\x80\xa8z\"");
+        CHECK(result.status == test_result::fatal_error);
+    }
+    SUBCASE("Unicode delimiter")
+    {
+        constexpr auto rule
+            = dsl::delimited(dsl::lit_c<'['>, dsl::lit_cp<0xBB>)(-dsl::unicode::control);
+        auto result = LEXY_VERIFY_RUNTIME(lexy::utf8_char_encoding{}, "[a\xc3\xa9\xc2\xbb");
+        CHECK(result.status == test_result::success);
+        CHECK(result.value == 3);
+    }
+    SUBCASE("Unicode escape")
+    {
+        constexpr auto rule = dsl::quoted(-dsl::unicode::control,
+                                          dsl::escape(dsl::lit_cp<0xA7>).rule(LEXY_LIT("n")));
+        auto result = LEXY_VERIFY_RUNTIME(lexy::utf8_char_encoding{}, "\"a\xc3\xa9\xc2\xa7nb\"");
+        CHECK(result.status == test_result::success);
+        CHECK(result.value == 4);
+    }
+    SUBCASE("partial delimiter")
+    {
+        constexpr auto rule = dsl::triple_quoted(-dsl::unicode::control);
+        auto           result
+            = LEXY_VERIFY_RUNTIME(lexy::utf8_char_encoding{}, "\"\"\"a\"b\"\"c\xc3\xa9\"\"\"");
+        CHECK(result.status == test_result::success);
+        CHECK(result.value == 8);
+    }
 }
 
 TEST_CASE("dsl::delimited(delim)")
