@@ -6,6 +6,7 @@
 
 #include <lexy/_detail/tuple.hpp>
 #include <lexy/dsl/base.hpp>
+#include <lexy/dsl/literal.hpp>
 #include <lexy/error.hpp>
 
 namespace lexy
@@ -21,6 +22,11 @@ struct exhausted_choice
 
 namespace lexyd
 {
+template <typename Rule>
+constexpr bool _chc_single_literal = false;
+template <typename CharT, CharT C>
+constexpr bool _chc_single_literal<_lit<CharT, C>> = true;
+
 template <typename... R>
 struct _chc
 // Only make it a branch rule if it doesn't have an unconditional branch.
@@ -31,9 +37,9 @@ struct _chc
     static constexpr auto _any_unconditional = (lexy::is_unconditional_branch_rule<R> || ...);
 
     template <typename Reader, typename Indices = lexy::_detail::make_index_sequence<sizeof...(R)>>
-    struct bp;
+    struct _bp;
     template <typename Reader, std::size_t... Idx>
-    struct bp<Reader, lexy::_detail::index_sequence<Idx...>>
+    struct _bp<Reader, lexy::_detail::index_sequence<Idx...>>
     {
         template <typename Rule>
         using rp = lexy::branch_parser_for<Rule, Reader>;
@@ -89,6 +95,45 @@ struct _chc
             return result;
         }
     };
+
+    template <typename Reader>
+    struct _literal_bp
+    {
+        // All alternatives consume one code unit and have no cancellation effects.
+        // Keep the lookahead instead of a reader marker for every alternative.
+        using encoding = typename Reader::encoding;
+        static_assert(lexy::is_char_encoding<encoding>);
+        typename encoding::int_type cur;
+
+        template <typename ControlBlock>
+        constexpr bool try_parse(const ControlBlock*, const Reader& reader)
+        {
+            cur = reader.peek();
+            return ((cur == encoding::to_int_type(R::template lit_first_char<encoding>())) || ...);
+        }
+
+        template <typename Context>
+        constexpr void cancel(Context&)
+        {}
+
+        template <typename NextParser, typename Context, typename... Args>
+        LEXY_PARSER_FUNC bool finish(Context& context, Reader& reader, Args&&... args)
+        {
+            auto begin = reader.position();
+            reader.bump();
+            // Report the first matching rule, preserving customized token kinds.
+            (void)((cur == encoding::to_int_type(R::template lit_first_char<encoding>())
+                        ? (context.on(_ev::token{}, R{}, begin, reader.position()), true)
+                        : false)
+                   || ...);
+            return lexy::whitespace_parser<Context, NextParser>::parse(context, reader,
+                                                                       LEXY_FWD(args)...);
+        }
+    };
+
+    template <typename Reader>
+    using bp
+        = std::conditional_t<(_chc_single_literal<R> && ...), _literal_bp<Reader>, _bp<Reader>>;
 
     template <typename NextParser>
     struct p
@@ -158,4 +203,3 @@ constexpr auto operator|(_chc<R...>, _chc<S...>)
 } // namespace lexyd
 
 #endif // LEXY_DSL_CHOICE_HPP_INCLUDED
-
