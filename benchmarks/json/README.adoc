@@ -1,0 +1,31 @@
+= JSON validation benchmark
+
+Build an optimized executable with the same compiler and flags for all backends:
+
+[source,shell]
+----
+cmake -S . -B build-bench -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_STANDARD=23 -DLEXY_BUILD_BENCHMARKS=ON
+cmake --build build-bench --target lexy_benchmark_json
+build-bench/benchmarks/json/json compare
+----
+
+The `compare` mode checks that lexy and Glaze accept each fixture before timing.
+It uses nanobench's paired, interleaved comparison with 64 rounds, four warmup
+iterations, and a minimum epoch time of three milliseconds. Results include a
+95% confidence interval. Input loading and buffer allocation happen outside the
+timed region, and each validation result is protected from dead-code elimination.
+
+Record the compiler version, optimization flags, CPU, and language mode with the
+results. Avoid concurrent builds, repeat measurements, and consider pinning the
+process to one CPU when comparing small changes. The default invocation still
+runs all backends and generates `benchmark_json.adoc`; `perf` runs only lexy.
+
+Both backends validate without constructing a JSON value tree. The lexy backend
+uses the example grammar, including its integer and exponent bounds, Unicode
+control-character restrictions, and recursion limit. Glaze validates JSON syntax
+with its own policies. These are not identical acceptance criteria: for example,
+lexy rejects `1e40000`, while Glaze accepts it; lexy accepts an unpaired escaped
+surrogate, while Glaze rejects it. Preserve the grammar's checks when measuring
+library optimizations, and exercise malformed inputs separately from throughput
+benchmarks.

@@ -122,6 +122,25 @@ Benchmarking is done by https://nanobench.ankerl.com/[nanobench] on an 2020 Mac 
 
 int main(int argc, char* argv[])
 {
+    // Interleave both implementations to reduce bias from clock and load changes.
+    if (argc == 2 && argv[1] == std::string_view("compare"))
+    {
+        for (auto file : {"canada.json", "citm_catalog.json", "twitter.json"})
+        {
+            auto data = get_data(file);
+            if (!json_lexy(data) || !json_glaze(data))
+                throw std::runtime_error("JSON validator rejected benchmark input");
+
+            ankerl::nanobench::Bench b;
+            b.title(file).unit("byte").batch(data.size());
+            b.epochs(64).warmup(4).minEpochTime(std::chrono::milliseconds(3));
+            b.compare(
+                "lexy", [&] { ankerl::nanobench::doNotOptimizeAway(json_lexy(data)); }, "glaze",
+                [&] { ankerl::nanobench::doNotOptimizeAway(json_glaze(data)); });
+        }
+        return 0;
+    }
+
     std::ofstream            out("benchmark_json.adoc");
     ankerl::nanobench::Bench b;
 
