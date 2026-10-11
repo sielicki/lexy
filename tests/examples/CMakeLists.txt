@@ -13,6 +13,9 @@ target_link_libraries(lexy_test_ip_address PRIVATE lexy_test_base)
 add_executable(lexy_test_json json.cpp)
 target_link_libraries(lexy_test_json PRIVATE lexy_test_base)
 
+add_executable(lexy_test_printf printf.cpp)
+target_link_libraries(lexy_test_printf PRIVATE lexy_test_base)
+
 add_executable(lexy_test_protobuf protobuf.cpp)
 target_link_libraries(lexy_test_protobuf PRIVATE lexy_test_base)
 

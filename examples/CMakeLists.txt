@@ -26,6 +26,11 @@ set_target_properties(lexy_example_json PROPERTIES OUTPUT_NAME "json")
 target_sources(lexy_example_json PRIVATE json.cpp)
 target_link_libraries(lexy_example_json PRIVATE foonathan::lexy::dev foonathan::lexy::file)
 
+add_executable(lexy_example_printf)
+set_target_properties(lexy_example_printf PROPERTIES OUTPUT_NAME "printf")
+target_sources(lexy_example_printf PRIVATE printf.cpp)
+target_link_libraries(lexy_example_printf PRIVATE foonathan::lexy::dev foonathan::lexy::file)
+
 add_executable(lexy_example_protobuf)
 set_target_properties(lexy_example_protobuf PROPERTIES OUTPUT_NAME "protobuf")
 target_sources(lexy_example_protobuf PRIVATE protobuf.cpp)
