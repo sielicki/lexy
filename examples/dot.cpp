@@ -1,8 +1,18 @@
 // Copyright (C) 2026 Jonathan Müller and lexy contributors
 // SPDX-License-Identifier: BSL-1.0
 
-// A DOT parser inspired by rydesun/tree-sitter-dot, discovered through Nix.
-// See dot.adoc for the grammar revision, scope, and usage, and dot.LICENSE for attribution.
+// Parse DOT graphs using recursive subgraphs, balanced HTML-like identifiers, and
+// a context flag that enforces directed versus undirected edge operators. Comments,
+// whitespace, and identifier spellings are preserved in a lossless parse tree.
+// This example parses syntax; it does not render graphs or interpret attributes.
+//
+// Usage: build/examples/dot <filename> (UTF-8 input).
+// Playground: paste this file and select the entry production named production.
+// Build target: lexy_example_dot; test target: lexy_test_dot.
+// Reference:
+// https://github.com/rydesun/tree-sitter-dot/tree/80327abbba6f47530edeb0df9f11bd5d5c93c14d Located
+// through Nix: tree-sitter-grammars.tree-sitter-dot.src Nixpkgs revision:
+// 8edc0c72e3a38faf5434e40d1f19431125fe4b30.
 
 #include <cstdio>
 
@@ -188,7 +198,9 @@ namespace grammar
 } // namespace grammar
 } // namespace
 
-#ifndef LEXY_TEST
+using production = grammar::graph;
+
+#if !defined(LEXY_TEST) && !defined(LEXY_PLAYGROUND_PRODUCTION)
 int main(int argc, char** argv)
 {
     if (argc != 2)

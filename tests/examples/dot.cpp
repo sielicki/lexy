@@ -202,3 +202,25 @@ TEST_CASE("DOT recursion limit")
                  + std::string(2'000, '>') + "] }";
     fail(label.c_str());
 }
+
+TEST_CASE("dot complete document")
+{
+    pass(R"sample(// A build pipeline with a cluster, ports, and subgraph edge endpoints.
+strict digraph pipeline {
+    rankdir = LR;
+    node [shape=box, style=rounded];
+    edge [color=steelblue];
+
+    subgraph cluster_frontend {
+        label = "Front" + " end";
+        source [label="Source files"];
+        parser [label=<<B>lexy</B><BR/>parser>];
+        source:e -> parser:w;
+    }
+
+    parser -> { ast diagnostics } [label="parse"];
+    ast -> optimizer -> binary;
+    diagnostics [label="Diagnostics\nwith source locations"];
+}
+)sample");
+}
